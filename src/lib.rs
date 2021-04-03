@@ -8,8 +8,54 @@ use std::mem;
 pub mod event;
 pub mod model;
 
-/// Timer for user
-pub type GlobalEventTime = u64;
+/// TimeCounter for user
+pub trait FrameCounter<M, E, Rec>: Copy
+where
+    M: Model<Rec, ModelEvent = E>,
+    E: Event,
+{
+    /// start state. this value used always.
+    fn start_state(model: &M) -> Self;
+
+    /// get (can continue flag, next state)
+    fn next_state<R: Rng + ?Sized>(
+        &self,
+        rng: &mut R,
+        recorder: &mut Rec,
+        scheduler: &mut EventScheduler<E>,
+        specified: &Self,
+    ) -> (bool, Self);
+}
+
+macro_rules! impl_counter {
+    ($t:ty, $i:ident) => {
+        impl<M, E, Rec> FrameCounter<M, E, Rec> for $t
+        where
+            M: Model<Rec, ModelEvent = E>,
+            E: Event,
+        {
+            fn start_state(_model: &M) -> $t {
+                $i::MIN
+            }
+
+            fn next_state<R: Rng + ?Sized>(
+                &self,
+                _rng: &mut R,
+                _recorder: &mut Rec,
+                _scheduler: &mut EventScheduler<E>,
+                specified: &$t,
+            ) -> (bool, $t) {
+                (self < specified, self + 1)
+            }
+        }
+    };
+}
+impl_counter!(u8, u8);
+impl_counter!(u16, u16);
+impl_counter!(u32, u32);
+impl_counter!(u64, u64);
+impl_counter!(u128, u128);
+impl_counter!(usize, usize);
 
 /// simulator
 #[derive(Debug, Clone)]
@@ -91,8 +137,19 @@ where
     }
 
     /// run simulate for frames
-    pub fn run<R: Rng + ?Sized>(&mut self, rng: &mut R, frame_count: GlobalEventTime) {
-        for _ in 0..frame_count {
+    ///
+    /// if you want to schedule event or record the counter value, you should impl other [`FrameCounter`]
+    /// because of would be used [`FrameCounter::next_state`] before check counter step and simulate step.
+    pub fn run<R: Rng + ?Sized, FC: FrameCounter<M, E, Rec>>(&mut self, rng: &mut R, counter: FC) {
+        let mut index = FC::start_state(&self.model);
+        loop {
+            let (can_continue, next) =
+                index.next_state(rng, &mut self.recorder, &mut self.scheduler, &counter);
+            if !can_continue {
+                break;
+            }
+            index = next;
+
             self.step(rng);
         }
     }
