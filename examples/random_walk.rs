@@ -4,8 +4,9 @@ use rand::{thread_rng, Rng};
 use sim_rs::event::{Event, EventScheduler, EventTimer, Schedule};
 use sim_rs::model::Model;
 use sim_rs::SimRs;
+use std::collections::BTreeMap;
 
-const FRAME_COUNT: u64 = 1000;
+const FRAME_COUNT: u64 = 100;
 const INITIAL_POSITION: (f64, f64) = (0.0, 0.0);
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -142,12 +143,14 @@ fn get_all_patterns() -> Vec<Schedule> {
     result
 }
 
-impl Model for WalkerList {
+type Recorder = BTreeMap<usize, Vec<(u64, WalkDirection)>>;
+impl Model<Recorder> for WalkerList {
     type ModelEvent = Walk;
 
-    fn initialize<R: Rng + ?Sized>(&mut self, _rng: &mut R) {
+    fn initialize<R: Rng + ?Sized>(&mut self, _rng: &mut R, recorder: &mut Recorder) {
         self.timer = 0;
         self.walkers.clear();
+        recorder.clear();
 
         let patterns: Vec<Schedule> = get_all_patterns();
         for schedule in patterns.into_iter() {
@@ -159,6 +162,7 @@ impl Model for WalkerList {
     fn at_first_frame<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
+        _recorder: &mut Recorder,
         scheduler: &mut EventScheduler<Self::ModelEvent>,
     ) {
         print!("Walker:");
@@ -174,6 +178,7 @@ impl Model for WalkerList {
     fn step<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
+        recorder: &mut Recorder,
         _scheduler: &mut EventScheduler<Self::ModelEvent>,
         fired_events: Vec<Self::ModelEvent>,
     ) {
@@ -184,6 +189,10 @@ impl Model for WalkerList {
             let walker = self.walkers.get_mut(index).unwrap();
             let direction = WalkDirection::create_as_random(rng);
             print!("\t{}:{:?}", index, direction);
+            recorder
+                .entry(index)
+                .or_default()
+                .push((self.timer, direction));
             walker.walk(direction);
         }
         println!();
@@ -211,8 +220,13 @@ impl WalkerList {
 
 fn main() {
     let model = WalkerList::new();
-    let mut simulator = SimRs::create_from(model);
+    let mut simulator = SimRs::create_from(model, Default::default());
     let mut rng = thread_rng();
     simulator.initialize(&mut rng);
     simulator.run(&mut rng, FRAME_COUNT);
+
+    println!();
+    for (index, logs) in simulator.get_recorder() {
+        println!("{}: {:?}", index, logs);
+    }
 }
