@@ -47,6 +47,16 @@ where
         }
     }
 
+    /// getter for model
+    pub fn get_model(&self) -> M {
+        &self.model
+    }
+
+    /// getter for scheduler
+    pub fn get_scheduler(&self) -> &EventScheduler<E> {
+        &self.scheduler
+    }
+
     // -----------
     // methods for run simulation
     // -----------
