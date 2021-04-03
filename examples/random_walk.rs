@@ -159,7 +159,7 @@ impl Model<Recorder> for WalkerList {
         }
     }
 
-    fn at_first_frame<R: Rng + ?Sized>(
+    fn initialize_frame<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
         _recorder: &mut Recorder,
@@ -180,7 +180,7 @@ impl Model<Recorder> for WalkerList {
         rng: &mut R,
         recorder: &mut Recorder,
         _scheduler: &mut EventScheduler<Self::ModelEvent>,
-        fired_events: Vec<Self::ModelEvent>,
+        fired_events: &mut Vec<Self::ModelEvent>,
     ) {
         self.timer += 1;
         print!("fired:");

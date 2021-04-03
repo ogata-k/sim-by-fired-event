@@ -14,7 +14,7 @@ pub trait Model<Rec> {
     fn initialize<R: Rng + ?Sized>(&mut self, rng: &mut R, recorder: &mut Rec);
 
     /// action after initialize when initialize simulator
-    fn at_first_frame<R: Rng + ?Sized>(
+    fn initialize_frame<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
         recorder: &mut Rec,
@@ -27,6 +27,6 @@ pub trait Model<Rec> {
         rng: &mut R,
         recorder: &mut Rec,
         scheduler: &mut EventScheduler<Self::ModelEvent>,
-        fired_events: Vec<Self::ModelEvent>,
+        fired_events: &mut Vec<Self::ModelEvent>,
     );
 }

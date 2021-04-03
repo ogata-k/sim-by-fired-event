@@ -18,13 +18,7 @@ where
     fn start_state(model: &M) -> Self;
 
     /// get (can continue flag, next state)
-    fn next_state<R: Rng + ?Sized>(
-        &self,
-        rng: &mut R,
-        recorder: &mut Rec,
-        scheduler: &mut EventScheduler<E>,
-        specified: &Self,
-    ) -> (bool, Self);
+    fn next_state(&self, model: &M, specified: &Self) -> (bool, Self);
 }
 
 macro_rules! impl_counter {
@@ -38,14 +32,9 @@ macro_rules! impl_counter {
                 $i::MIN
             }
 
-            fn next_state<R: Rng + ?Sized>(
-                &self,
-                _rng: &mut R,
-                _recorder: &mut Rec,
-                _scheduler: &mut EventScheduler<E>,
-                specified: &$t,
-            ) -> (bool, $t) {
-                (self < specified, self + 1)
+            fn next_state(&self, _model: &M, specified: &$t) -> (bool, $t) {
+                let next = self + 1;
+                (&next <= specified, next)
             }
         }
     };
@@ -132,7 +121,7 @@ where
         self.scheduler.clear();
         self.model.initialize(rng, &mut self.recorder);
         self.model
-            .at_first_frame(rng, &mut self.recorder, &mut self.scheduler);
+            .initialize_frame(rng, &mut self.recorder, &mut self.scheduler);
         self
     }
 
@@ -143,8 +132,7 @@ where
     pub fn run<R: Rng + ?Sized, FC: FrameCounter<M, E, Rec>>(&mut self, rng: &mut R, counter: FC) {
         let mut index = FC::start_state(&self.model);
         loop {
-            let (can_continue, next) =
-                index.next_state(rng, &mut self.recorder, &mut self.scheduler, &counter);
+            let (can_continue, next) = index.next_state(&self.model, &counter);
             if !can_continue {
                 break;
             }
@@ -156,9 +144,9 @@ where
 
     /// run simulate for one frame
     pub fn step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        let fired: Vec<E> = self.scheduler.next_time_and_fire(rng);
+        let mut fired: Vec<E> = self.scheduler.next_time_and_fire(rng);
         self.model
-            .step(rng, &mut self.recorder, &mut self.scheduler, fired);
+            .step(rng, &mut self.recorder, &mut self.scheduler, &mut fired);
     }
 
     /// run simulation until condition is true
