@@ -9,30 +9,22 @@ pub mod event;
 pub mod model;
 
 /// TimeCounter for user
-pub trait FrameCounter<M, E, Rec>: Copy
-where
-    M: Model<Rec, ModelEvent = E>,
-    E: Event,
-{
+pub trait FrameCounter: Copy {
     /// start state. this value used always.
-    fn start_state(model: &M) -> Self;
+    fn start_state() -> Self;
 
     /// get (can continue flag, next state)
-    fn next_state(&self, model: &M, specified: &Self) -> (bool, Self);
+    fn next_state(&self, specified: &Self) -> (bool, Self);
 }
 
 macro_rules! impl_counter {
     ($t:ty, $i:ident) => {
-        impl<M, E, Rec> FrameCounter<M, E, Rec> for $t
-        where
-            M: Model<Rec, ModelEvent = E>,
-            E: Event,
-        {
-            fn start_state(_model: &M) -> $t {
+        impl FrameCounter for $t {
+            fn start_state() -> $t {
                 $i::MIN
             }
 
-            fn next_state(&self, _model: &M, specified: &$t) -> (bool, $t) {
+            fn next_state(&self, specified: &$t) -> (bool, $t) {
                 let next = self + 1;
                 (&next <= specified, next)
             }
@@ -129,10 +121,10 @@ where
     ///
     /// if you want to schedule event or record the counter value, you should impl other [`FrameCounter`]
     /// because of would be used [`FrameCounter::next_state`] before check counter step and simulate step.
-    pub fn run<R: Rng + ?Sized, FC: FrameCounter<M, E, Rec>>(&mut self, rng: &mut R, counter: FC) {
-        let mut index = FC::start_state(&self.model);
+    pub fn run<R: Rng + ?Sized, FC: FrameCounter>(&mut self, rng: &mut R, counter: FC) {
+        let mut index = FC::start_state();
         loop {
-            let (can_continue, next) = index.next_state(&self.model, &counter);
+            let (can_continue, next) = index.next_state(&counter);
             if !can_continue {
                 break;
             }
