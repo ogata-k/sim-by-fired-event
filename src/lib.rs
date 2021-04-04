@@ -144,9 +144,9 @@ where
     /// run simulation until condition is true
     pub fn run_until<R: Rng + ?Sized, F>(&mut self, rng: &mut R, judge: F)
     where
-        F: Fn(&mut R, &M, &EventScheduler<E>) -> bool,
+        F: Fn(&mut Rec, &M) -> bool,
     {
-        while judge(rng, &self.model, &self.scheduler) {
+        while judge(&mut self.recorder, &self.model) {
             self.step(rng);
         }
     }
