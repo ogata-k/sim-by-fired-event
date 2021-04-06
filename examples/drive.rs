@@ -25,13 +25,6 @@ struct CarRecorder {
 }
 
 impl CarRecorder {
-    fn init(&mut self) {
-        self.time = 0;
-        self.use_fuel = 0;
-        self.total_inject_fuel = 0;
-        self.total_run = 0;
-    }
-
     fn start_next_time(&mut self) {
         self.time += 1;
     }
@@ -52,13 +45,7 @@ impl CarRecorder {
 impl Model<CarRecorder> for Car {
     type ModelEvent = CarEvent;
 
-    fn initialize<R: Rng + ?Sized>(&mut self, _rng: &mut R, recorder: &mut CarRecorder) {
-        self.fuel = Self::MAX_FUEL;
-        self.status = CarStatus::Driving;
-        recorder.init();
-    }
-
-    fn initialize_frame<R: Rng + ?Sized>(
+    fn initialize<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
         _recorder: &mut CarRecorder,

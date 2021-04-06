@@ -52,12 +52,15 @@ where
 
 impl<M, E, Rec> Simulator<M, E, Rec>
 where
-    Rec: Default,
-    M: Model<Rec, ModelEvent = E> + Default,
+    M: Model<Rec, ModelEvent = E>,
     E: Event,
 {
     /// create as default
-    pub fn new<R: Rng + ?Sized>(rng: &mut R) -> Self {
+    pub fn new<R: Rng + ?Sized>(rng: &mut R) -> Self
+    where
+        Rec: Default,
+        M: Default,
+    {
         let mut sim = Self {
             model: Default::default(),
             recorder: Default::default(),
@@ -66,13 +69,7 @@ where
         sim.initialize(rng);
         sim
     }
-}
 
-impl<M, E, Rec> Simulator<M, E, Rec>
-where
-    M: Model<Rec, ModelEvent = E>,
-    E: Event,
-{
     /// create simulator from model
     pub fn create_from<R: Rng + ?Sized>(rng: &mut R, model: M, recorder: Rec) -> Self {
         let mut sim = Self {
@@ -82,6 +79,12 @@ where
         };
         sim.initialize(rng);
         sim
+    }
+
+    /// initialize simulator
+    fn initialize<R: Rng + ?Sized>(&mut self, rng: &mut R) {
+        self.model
+            .initialize(rng, &mut self.recorder, &mut self.scheduler);
     }
 
     /// getter for model
@@ -112,15 +115,6 @@ where
     // -----------
     // methods for run simulation
     // -----------
-
-    /// initialize simulator
-    fn initialize<R: Rng + ?Sized>(&mut self, rng: &mut R) -> &mut Self {
-        self.scheduler.clear();
-        self.model.initialize(rng, &mut self.recorder);
-        self.model
-            .initialize_frame(rng, &mut self.recorder, &mut self.scheduler);
-        self
-    }
 
     /// run simulate for one frame
     pub fn run_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {

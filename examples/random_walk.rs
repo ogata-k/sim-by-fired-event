@@ -147,19 +147,7 @@ type Recorder = BTreeMap<usize, Vec<(u64, WalkDirection)>>;
 impl Model<Recorder> for WalkerList {
     type ModelEvent = Walk;
 
-    fn initialize<R: Rng + ?Sized>(&mut self, _rng: &mut R, recorder: &mut Recorder) {
-        self.timer = 0;
-        self.walkers.clear();
-        recorder.clear();
-
-        let patterns: Vec<Schedule> = get_all_patterns();
-        for schedule in patterns.into_iter() {
-            let walker = Walker::create_from(schedule);
-            self.walkers.push(walker);
-        }
-    }
-
-    fn initialize_frame<R: Rng + ?Sized>(
+    fn initialize<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
         _recorder: &mut Recorder,
@@ -203,10 +191,15 @@ impl Model<Recorder> for WalkerList {
 
 impl WalkerList {
     fn new() -> Self {
-        WalkerList {
-            timer: 0,
-            walkers: vec![],
+        let mut walkers = vec![];
+
+        let patterns: Vec<Schedule> = get_all_patterns();
+        for schedule in patterns.into_iter() {
+            let walker = Walker::create_from(schedule);
+            walkers.push(walker);
         }
+
+        WalkerList { timer: 0, walkers }
     }
 
     fn print_walk_state(&self) {
