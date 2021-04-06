@@ -42,7 +42,7 @@ impl From<WeightedError> for ScheduleEventError {
 #[derive(Debug, Clone)]
 pub enum EventTimer {
     /// fire after timeout
-    Timeout(LocalEventTime),
+    Time(LocalEventTime),
     /// fire after random value by uniform select in range values
     Uniform(Range<LocalEventTime>),
     /// fire after choice value with these weight as random.
@@ -56,7 +56,7 @@ impl EventTimer {
         rng: &mut R,
     ) -> Result<LocalEventTime, ScheduleEventError> {
         match &self {
-            EventTimer::Timeout(timeout) => Ok(*timeout),
+            EventTimer::Time(timeout) => Ok(*timeout),
             EventTimer::Uniform(range) => Ok(Uniform::from(range.clone()).sample(rng)),
             EventTimer::WeightedIndex(items) => {
                 let dist = WeightedIndex::new(items.iter().map(|item| item.1))?;

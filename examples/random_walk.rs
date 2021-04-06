@@ -128,7 +128,7 @@ fn get_all_patterns() -> Vec<Schedule> {
     result.push(Immediate);
     result.push(Everytime);
     for (index, timer) in vec![
-        EventTimer::Timeout(10),
+        EventTimer::Time(10),
         EventTimer::Uniform(1..10),
         EventTimer::WeightedIndex(vec![(1, 2), (5, 5), (10, 2)]),
     ]
