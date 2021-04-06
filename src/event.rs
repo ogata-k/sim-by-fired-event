@@ -11,6 +11,11 @@ pub type LocalEventTime = u32;
 /// can store event as SimRs's event
 pub trait Event: Clone {}
 
+/// helper. if not use event, you can use this.
+#[derive(Default, Debug, Ord, PartialOrd, Eq, PartialEq, Copy, Clone)]
+pub struct NoneEvent {}
+impl Event for NoneEvent {}
+
 /// Error for scheduled event
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScheduleEventError {
