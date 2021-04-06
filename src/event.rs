@@ -156,8 +156,11 @@ impl<E: Event> EventScheduler<E> {
             }
         }
 
-        let drain: Vec<(LocalEventTime, Schedule, E)> = self.event_list.drain(0..removed).collect();
-        let fired_events: Vec<(Schedule, E)> = drain.into_iter().map(|(_, s, e)| (s, e)).collect();
+        let fired_events: Vec<(Schedule, E)> = self
+            .event_list
+            .drain(0..removed)
+            .map(|(_, s, e)| (s, e))
+            .collect();
 
         // reschedule for calculated next event schedule
         for (schedule, event) in fired_events.iter() {
