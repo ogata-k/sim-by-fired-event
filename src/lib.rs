@@ -118,9 +118,6 @@ where
     }
 
     /// run simulate for frames
-    ///
-    /// if you want to schedule event or record the counter value, you should impl other [`FrameCounter`]
-    /// because of would be used [`FrameCounter::next_state`] before check counter step and simulate step.
     pub fn run<R: Rng + ?Sized, FC: FrameCounter>(&mut self, rng: &mut R, counter: FC) {
         let mut index = FC::start_state();
         loop {
