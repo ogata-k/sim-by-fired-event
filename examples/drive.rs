@@ -171,7 +171,7 @@ fn main() {
     let mut simulator = Simulator::create_from(model, CarRecorder::default());
     let mut rng = thread_rng();
     simulator.initialize(&mut rng);
-    simulator.run_until(&mut rng, |_, model| model.status != CarStatus::EngineStop);
+    simulator.run_until(&mut rng, |model| model.status != CarStatus::EngineStop);
     let recorder = simulator.get_recorder();
     println!("result: {:?}", recorder);
 }

@@ -117,6 +117,13 @@ where
         self
     }
 
+    /// run simulate for one frame
+    pub fn run_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
+        let mut fired: Vec<E> = self.scheduler.next_time_and_fire(rng);
+        self.model
+            .step(rng, &mut self.recorder, &mut self.scheduler, &mut fired);
+    }
+
     /// run simulate for frames
     pub fn run<R: Rng + ?Sized, FC: FrameCounter>(&mut self, rng: &mut R, counter: FC) {
         let mut index = FC::start_state();
@@ -127,24 +134,41 @@ where
             }
             index = next;
 
-            self.step(rng);
+            self.run_step(rng);
         }
     }
 
-    /// run simulate for one frame
-    pub fn step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        let mut fired: Vec<E> = self.scheduler.next_time_and_fire(rng);
-        self.model
-            .step(rng, &mut self.recorder, &mut self.scheduler, &mut fired);
+    /// run simulation until condition is true
+    pub fn run_until<R: Rng + ?Sized, F>(&mut self, rng: &mut R, can_continue: F)
+    where
+        F: Fn(&M) -> bool,
+    {
+        loop {
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step(rng);
+        }
     }
 
-    /// run simulation until condition is true
-    pub fn run_until<R: Rng + ?Sized, F>(&mut self, rng: &mut R, judge: F)
-    where
-        F: Fn(&mut Rec, &M) -> bool,
+    /// run simulation with update model's state
+    pub fn run_with_state<R: Rng + ?Sized, S, F, P>(
+        &mut self,
+        rng: &mut R,
+        update_state: F,
+        can_continue: P,
+    ) where
+        F: Fn(&mut M),
+        P: Fn(&M) -> bool,
     {
-        while judge(&mut self.recorder, &self.model) {
-            self.step(rng);
+        loop {
+            update_state(&mut self.model);
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step(rng);
         }
     }
 }
