@@ -3,7 +3,7 @@ use rand::distributions::Uniform;
 use rand::{thread_rng, Rng};
 use sim_rs::event::{Event, EventScheduler, EventTimer, Schedule};
 use sim_rs::model::Model;
-use sim_rs::SimRs;
+use sim_rs::Simulator;
 use std::collections::BTreeMap;
 
 const FRAME_COUNT: u64 = 100;
@@ -220,7 +220,7 @@ impl WalkerList {
 
 fn main() {
     let model = WalkerList::new();
-    let mut simulator = SimRs::create_from(model, Default::default());
+    let mut simulator = Simulator::create_from(model, Default::default());
     let mut rng = thread_rng();
     simulator.initialize(&mut rng);
     simulator.run(&mut rng, FRAME_COUNT);

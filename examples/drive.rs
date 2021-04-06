@@ -1,7 +1,7 @@
 use rand::{thread_rng, Rng};
 use sim_rs::event::{Event, EventScheduler, EventTimer};
 use sim_rs::model::Model;
-use sim_rs::SimRs;
+use sim_rs::Simulator;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum CarStatus {
@@ -168,7 +168,7 @@ impl Event for CarEvent {}
 
 fn main() {
     let model = Car::new();
-    let mut simulator = SimRs::create_from(model, CarRecorder::default());
+    let mut simulator = Simulator::create_from(model, CarRecorder::default());
     let mut rng = thread_rng();
     simulator.initialize(&mut rng);
     simulator.run_until(&mut rng, |_, model| model.status != CarStatus::EngineStop);

@@ -1,4 +1,4 @@
-//! SimRs is discrete time simulator with event which fire at scheduled timing.
+//! Simulator is discrete time simulator with event which fire at scheduled timing.
 
 use crate::event::{Event, EventScheduler};
 use crate::model::Model;
@@ -40,7 +40,7 @@ impl_counter!(usize, usize);
 
 /// simulator
 #[derive(Debug, Clone)]
-pub struct SimRs<M, E, Rec>
+pub struct Simulator<M, E, Rec>
 where
     M: Model<Rec, ModelEvent = E>,
     E: Event,
@@ -50,7 +50,7 @@ where
     scheduler: EventScheduler<E>,
 }
 
-impl<M, E, Rec> Default for SimRs<M, E, Rec>
+impl<M, E, Rec> Default for Simulator<M, E, Rec>
 where
     M: Model<Rec, ModelEvent = E> + Default,
     E: Event,
@@ -65,7 +65,7 @@ where
     }
 }
 
-impl<M, E, Rec> SimRs<M, E, Rec>
+impl<M, E, Rec> Simulator<M, E, Rec>
 where
     M: Model<Rec, ModelEvent = E>,
     E: Event,

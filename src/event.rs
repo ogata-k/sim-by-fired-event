@@ -1,4 +1,4 @@
-//! SimRs's event and the event manager
+//! Simulator's event and the event manager
 
 use rand::distributions::{Distribution, Uniform, WeightedError, WeightedIndex};
 use rand::Rng;
@@ -8,7 +8,7 @@ use std::slice::Iter;
 /// Timer for local
 pub type LocalEventTime = u32;
 
-/// can store event as SimRs's event
+/// can store event as Simulator's event
 pub trait Event: Clone {}
 
 /// helper. if not use event, you can use this.
