@@ -1,5 +1,5 @@
 [package]
-name = "sim-rs"
+name = "sim-by-fired-event"
 version = "0.1.0"
 authors = ["ogata-k <ogtkzk712@gmail.com>"]
 edition = "2018"

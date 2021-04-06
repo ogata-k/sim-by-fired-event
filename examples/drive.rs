@@ -1,7 +1,7 @@
 use rand::{thread_rng, Rng};
-use sim_rs::event::{Event, EventScheduler, EventTimer};
-use sim_rs::model::Model;
-use sim_rs::Simulator;
+use sim_by_fired_event::event::{Event, EventScheduler, EventTimer};
+use sim_by_fired_event::model::Model;
+use sim_by_fired_event::Simulator;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum CarStatus {

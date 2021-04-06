@@ -1,9 +1,9 @@
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::{thread_rng, Rng};
-use sim_rs::event::{Event, EventScheduler, EventTimer, Schedule};
-use sim_rs::model::Model;
-use sim_rs::Simulator;
+use sim_by_fired_event::event::{Event, EventScheduler, EventTimer, Schedule};
+use sim_by_fired_event::model::Model;
+use sim_by_fired_event::Simulator;
 use std::collections::BTreeMap;
 
 const FRAME_COUNT: u64 = 100;
