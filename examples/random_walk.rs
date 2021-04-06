@@ -219,10 +219,9 @@ impl WalkerList {
 }
 
 fn main() {
-    let model = WalkerList::new();
-    let mut simulator = Simulator::create_from(model, Default::default());
     let mut rng = thread_rng();
-    simulator.initialize(&mut rng);
+    let model = WalkerList::new();
+    let mut simulator = Simulator::create_from(&mut rng, model, Default::default());
     simulator.run(&mut rng, FRAME_COUNT);
 
     println!();

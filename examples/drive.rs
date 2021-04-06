@@ -167,11 +167,12 @@ enum CarEvent {
 impl Event for CarEvent {}
 
 fn main() {
-    let model = Car::new();
-    let mut simulator = Simulator::create_from(model, CarRecorder::default());
     let mut rng = thread_rng();
-    simulator.initialize(&mut rng);
+    let model = Car::new();
+    let mut simulator = Simulator::create_from(&mut rng, model, CarRecorder::default());
     simulator.run_until(&mut rng, |model| model.status != CarStatus::EngineStop);
+
+    println!();
     let recorder = simulator.get_recorder();
     println!("result: {:?}", recorder);
 }

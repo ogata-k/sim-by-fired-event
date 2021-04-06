@@ -50,18 +50,21 @@ where
     scheduler: EventScheduler<E>,
 }
 
-impl<M, E, Rec> Default for Simulator<M, E, Rec>
+impl<M, E, Rec> Simulator<M, E, Rec>
 where
+    Rec: Default,
     M: Model<Rec, ModelEvent = E> + Default,
     E: Event,
-    Rec: Default,
 {
-    fn default() -> Self {
-        Self {
+    /// create as default
+    pub fn new<R: Rng + ?Sized>(rng: &mut R) -> Self {
+        let mut sim = Self {
             model: Default::default(),
             recorder: Default::default(),
             scheduler: EventScheduler::new(),
-        }
+        };
+        sim.initialize(rng);
+        sim
     }
 }
 
@@ -71,12 +74,14 @@ where
     E: Event,
 {
     /// create simulator from model
-    pub fn create_from(model: M, recorder: Rec) -> Self {
-        Self {
+    pub fn create_from<R: Rng + ?Sized>(rng: &mut R, model: M, recorder: Rec) -> Self {
+        let mut sim = Self {
             model,
             recorder,
             scheduler: EventScheduler::new(),
-        }
+        };
+        sim.initialize(rng);
+        sim
     }
 
     /// getter for model
@@ -109,7 +114,7 @@ where
     // -----------
 
     /// initialize simulator
-    pub fn initialize<R: Rng + ?Sized>(&mut self, rng: &mut R) -> &mut Self {
+    fn initialize<R: Rng + ?Sized>(&mut self, rng: &mut R) -> &mut Self {
         self.scheduler.clear();
         self.model.initialize(rng, &mut self.recorder);
         self.model
