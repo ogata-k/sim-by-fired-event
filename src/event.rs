@@ -3,7 +3,6 @@
 use rand::distributions::{Distribution, Uniform, WeightedError, WeightedIndex};
 use rand::Rng;
 use std::ops::Range;
-use std::slice::Iter;
 
 /// Timer for local
 pub type LocalEventTime = u32;
@@ -128,14 +127,14 @@ impl Schedule {
     }
 }
 
-/// alias type for scheduled event's iter
-pub type ScheduledEventIter<'a, E> = Iter<'a, (LocalEventTime, Schedule, E)>;
+/// 0 is the highest priority, u8::Max is the lowest priority.
+pub type Priority = u8;
 
 /// event scheduler
 #[derive(Debug, Clone)]
 pub struct EventScheduler<E: Event> {
     /// event list with inserted order by LocalEventTime's asc.
-    event_list: Vec<(LocalEventTime, Schedule, E)>,
+    event_list: Vec<(LocalEventTime, Schedule, Priority, E)>,
 }
 
 impl<E: Event> EventScheduler<E> {
@@ -145,7 +144,10 @@ impl<E: Event> EventScheduler<E> {
     }
 
     /// calc next state and fetch fired events
-    pub(crate) fn next_time_and_fire<R: Rng + ?Sized>(&mut self, rng: &mut R) -> Vec<E> {
+    pub(crate) fn next_time_and_fire<R: Rng + ?Sized>(
+        &mut self,
+        rng: &mut R,
+    ) -> Vec<(Priority, E)> {
         let mut removed: usize = 0;
         for event in self.event_list.iter_mut() {
             if event.0 > 0 {
@@ -156,21 +158,22 @@ impl<E: Event> EventScheduler<E> {
             }
         }
 
-        let fired_events: Vec<(Schedule, E)> = self
+        let fired_events: Vec<(Schedule, Priority, E)> = self
             .event_list
             .drain(0..removed)
-            .map(|(_, s, e)| (s, e))
+            .map(|(_, s, pty, e)| (s, pty, e))
             .collect();
 
         // reschedule for calculated next event schedule
-        for (schedule, event) in fired_events.iter() {
+        for (schedule, pty, event) in fired_events.iter() {
             if let Some(next_schedule) = schedule.to_next() {
                 // scheduled event's schedule is already validated
-                self.schedule(rng, next_schedule, event.clone()).unwrap();
+                self.schedule(rng, next_schedule, *pty, event.clone())
+                    .unwrap();
             }
         }
 
-        return fired_events.into_iter().map(|(_, e)| e).collect();
+        return fired_events.into_iter().map(|(_, p, e)| (p, e)).collect();
     }
 
     //
@@ -187,11 +190,6 @@ impl<E: Event> EventScheduler<E> {
         self.event_list.len()
     }
 
-    /// to iterator for scheduled events
-    pub fn iter(&self) -> ScheduledEventIter<E> {
-        self.event_list.iter()
-    }
-
     //
     // schedule event
     //
@@ -204,7 +202,7 @@ impl<E: Event> EventScheduler<E> {
     /// remove scheduled events when predicate function is true
     pub fn remove_when<P>(&mut self, mut predicate: P)
     where
-        P: FnMut(&(LocalEventTime, Schedule, E)) -> bool,
+        P: FnMut(&(LocalEventTime, Schedule, Priority, E)) -> bool,
     {
         self.event_list.retain(|state| !predicate(state))
     }
@@ -213,7 +211,7 @@ impl<E: Event> EventScheduler<E> {
     #[allow(unused_mut)]
     pub fn retain<P>(&mut self, mut predicate: P)
     where
-        P: FnMut(&(LocalEventTime, Schedule, E)) -> bool,
+        P: FnMut(&(LocalEventTime, Schedule, Priority, E)) -> bool,
     {
         self.event_list.retain(predicate)
     }
@@ -223,18 +221,20 @@ impl<E: Event> EventScheduler<E> {
         &mut self,
         rng: &mut R,
         schedule: Schedule,
+        priority: Priority,
         event: E,
     ) -> Result<(), ScheduleEventError> {
         let mut index: usize = 0;
         let timer: LocalEventTime = schedule.to_local_timer(rng)?;
 
-        for (count, _, _) in self.event_list.iter() {
-            if &timer < count {
+        for (count, _, sch_priority, _) in self.event_list.iter() {
+            if (&timer == count && &priority < sch_priority) || &timer < count {
                 break;
             }
             index += 1;
         }
-        self.event_list.insert(index, (timer, schedule, event));
+        self.event_list
+            .insert(index, (timer, schedule, priority, event));
         Ok(())
     }
 
@@ -243,6 +243,7 @@ impl<E: Event> EventScheduler<E> {
         &mut self,
         rng: &mut R,
         schedule: Schedule,
+        priority: Priority,
         event: E,
         predicate: P,
     ) -> Result<(), ScheduleEventError>
@@ -252,16 +253,17 @@ impl<E: Event> EventScheduler<E> {
         if !predicate(&self) {
             return Ok(());
         }
-        self.schedule(rng, schedule, event)
+        self.schedule(rng, schedule, priority, event)
     }
 
     /// store event which fire at immediate timing
     pub fn immediate<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
+        priority: Priority,
         event: E,
     ) -> Result<(), ScheduleEventError> {
-        self.schedule(rng, Schedule::Immediate, event)
+        self.schedule(rng, Schedule::Immediate, priority, event)
     }
 
     /// store event which fire after timeout
@@ -269,18 +271,20 @@ impl<E: Event> EventScheduler<E> {
         &mut self,
         rng: &mut R,
         timeout: EventTimer,
+        priority: Priority,
         event: E,
     ) -> Result<(), ScheduleEventError> {
-        self.schedule(rng, Schedule::Timeout(timeout), event)
+        self.schedule(rng, Schedule::Timeout(timeout), priority, event)
     }
 
     /// store event which fire every time
     pub fn everytime<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
+        priority: Priority,
         event: E,
     ) -> Result<(), ScheduleEventError> {
-        self.schedule(rng, Schedule::Everytime, event)
+        self.schedule(rng, Schedule::Everytime, priority, event)
     }
 
     /// store event which fire every interval
@@ -288,9 +292,10 @@ impl<E: Event> EventScheduler<E> {
         &mut self,
         rng: &mut R,
         interval: EventTimer,
+        priority: Priority,
         event: E,
     ) -> Result<(), ScheduleEventError> {
-        self.schedule(rng, Schedule::EveryInterval(interval), event)
+        self.schedule(rng, Schedule::EveryInterval(interval), priority, event)
     }
 
     /// store event which fire every interval only count
@@ -299,8 +304,9 @@ impl<E: Event> EventScheduler<E> {
         rng: &mut R,
         count: u8,
         interval: EventTimer,
+        priority: Priority,
         event: E,
     ) -> Result<(), ScheduleEventError> {
-        self.schedule(rng, Schedule::Repeat(count, interval), event)
+        self.schedule(rng, Schedule::Repeat(count, interval), priority, event)
     }
 }

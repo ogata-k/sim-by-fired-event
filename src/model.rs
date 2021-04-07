@@ -1,6 +1,6 @@
 //! Simulator's model
 
-use crate::event::{Event, EventScheduler};
+use crate::event::{Event, EventScheduler, Priority};
 use rand::Rng;
 
 /// can store model as Simulator's model
@@ -22,6 +22,6 @@ pub trait Model<Rec> {
         rng: &mut R,
         recorder: &mut Rec,
         scheduler: &mut EventScheduler<Self::ModelEvent>,
-        fired_events: &mut Vec<Self::ModelEvent>,
+        fired_events: &mut Vec<(Priority, Self::ModelEvent)>,
     );
 }

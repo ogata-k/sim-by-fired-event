@@ -1,7 +1,7 @@
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::{thread_rng, Rng};
-use sim_by_fired_event::event::{Event, EventScheduler, EventTimer, Schedule};
+use sim_by_fired_event::event::{Event, EventScheduler, EventTimer, Priority, Schedule};
 use sim_by_fired_event::model::Model;
 use sim_by_fired_event::Simulator;
 use std::collections::BTreeMap;
@@ -111,7 +111,7 @@ impl Walker {
         index: usize,
     ) {
         let schedule = self.pattern.clone();
-        let _ = scheduler.schedule(rng, schedule, Walk { index });
+        let _ = scheduler.schedule(rng, schedule, 0, Walk { index });
     }
 }
 
@@ -168,11 +168,11 @@ impl Model<Recorder> for WalkerList {
         rng: &mut R,
         recorder: &mut Recorder,
         _scheduler: &mut EventScheduler<Self::ModelEvent>,
-        fired_events: &mut Vec<Self::ModelEvent>,
+        fired_events: &mut Vec<(Priority, Self::ModelEvent)>,
     ) {
         self.timer += 1;
         print!("fired:");
-        for fired in fired_events.iter() {
+        for (_, fired) in fired_events.iter() {
             let index = fired.index;
             let walker = self.walkers.get_mut(index).unwrap();
             let direction = WalkDirection::create_as_random(rng);

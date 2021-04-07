@@ -1,5 +1,5 @@
 use rand::{thread_rng, Rng};
-use sim_by_fired_event::event::{Event, EventScheduler, EventTimer};
+use sim_by_fired_event::event::{Event, EventScheduler, EventTimer, Priority};
 use sim_by_fired_event::model::Model;
 use sim_by_fired_event::Simulator;
 
@@ -55,6 +55,7 @@ impl Model<CarRecorder> for Car {
         let _ = scheduler.timeout(
             rng,
             EventTimer::WeightedIndex(vec![(5, 3), (10, 2), (15, 1)]),
+            0,
             CarEvent::StartCharge,
         );
     }
@@ -64,7 +65,7 @@ impl Model<CarRecorder> for Car {
         rng: &mut R,
         recorder: &mut CarRecorder,
         scheduler: &mut EventScheduler<CarEvent>,
-        fired_events: &mut Vec<CarEvent>,
+        fired_events: &mut Vec<(Priority, CarEvent)>,
     ) {
         if self.status == CarStatus::EngineStop {
             return;
@@ -72,7 +73,7 @@ impl Model<CarRecorder> for Car {
 
         recorder.start_next_time();
         // fired event is always fired at most one.
-        if let Some(event) = fired_events.iter().nth(0) {
+        if let Some(event) = fired_events.iter().map(|(_, fired)| fired).nth(0) {
             match event {
                 CarEvent::StartCharge => {
                     println!("go to gas station");
@@ -80,6 +81,7 @@ impl Model<CarRecorder> for Car {
                     let _ = scheduler.timeout(
                         rng,
                         EventTimer::WeightedIndex(vec![(2, 3), (3, 2), (5, 1)]),
+                        0,
                         CarEvent::EndCharge,
                     );
                 }
@@ -89,6 +91,7 @@ impl Model<CarRecorder> for Car {
                     let _ = scheduler.timeout(
                         rng,
                         EventTimer::WeightedIndex(vec![(5, 3), (10, 2), (15, 1)]),
+                        0,
                         CarEvent::StartCharge,
                     );
                 }
@@ -100,7 +103,7 @@ impl Model<CarRecorder> for Car {
 
                 if self.fuel == Self::MAX_FUEL {
                     scheduler.clear();
-                    let _ = scheduler.immediate(rng, CarEvent::EndCharge);
+                    let _ = scheduler.immediate(rng, 0, CarEvent::EndCharge);
                 }
             } else if self.status == CarStatus::Driving {
                 println!("drive the car");

@@ -1,6 +1,6 @@
 //! Simulator is discrete time simulator with event which fire at scheduled timing.
 
-use crate::event::{Event, EventScheduler};
+use crate::event::{Event, EventScheduler, Priority};
 use crate::model::Model;
 use rand::Rng;
 use std::mem;
@@ -118,7 +118,7 @@ where
 
     /// run simulate for one frame
     pub fn run_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        let mut fired: Vec<E> = self.scheduler.next_time_and_fire(rng);
+        let mut fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
         self.model
             .step(rng, &mut self.recorder, &mut self.scheduler, &mut fired);
     }
