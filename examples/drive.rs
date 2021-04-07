@@ -60,21 +60,11 @@ impl Model<CarRecorder> for Car {
         );
     }
 
-    fn start_frame<R: Rng + ?Sized>(
-        &mut self,
-        _rng: &mut R,
-        _recorder: &mut CarRecorder,
-        _scheduler: &mut EventScheduler<Self::ModelEvent>,
-    ) {
+    fn start_frame<R: Rng + ?Sized>(&mut self, _rng: &mut R, _recorder: &mut CarRecorder) {
         // none
     }
 
-    fn finish_frame<R: Rng + ?Sized>(
-        &mut self,
-        _rng: &mut R,
-        _recorder: &mut CarRecorder,
-        _scheduler: &mut EventScheduler<Self::ModelEvent>,
-    ) {
+    fn finish_frame<R: Rng + ?Sized>(&mut self, _rng: &mut R, _recorder: &mut CarRecorder) {
         // none
     }
 }

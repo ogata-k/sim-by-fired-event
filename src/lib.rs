@@ -120,13 +120,11 @@ where
 {
     /// run simulate for one frame with bulk events
     pub fn run_step_in_bulk<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        self.model
-            .start_frame(rng, &mut self.recorder, &mut self.scheduler);
+        self.model.start_frame(rng, &mut self.recorder);
         let fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
         self.model
             .step_in_bulk_event(rng, &mut self.recorder, &mut self.scheduler, fired);
-        self.model
-            .finish_frame(rng, &mut self.recorder, &mut self.scheduler);
+        self.model.finish_frame(rng, &mut self.recorder);
     }
 
     /// run simulate for frames with bulk events
@@ -189,15 +187,13 @@ where
 {
     /// run simulate for one frame with calculate each event
     pub fn run_step_each_event<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        self.model
-            .start_frame(rng, &mut self.recorder, &mut self.scheduler);
+        self.model.start_frame(rng, &mut self.recorder);
         let fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
         for fe in fired.iter() {
             self.model
                 .step_each_event(rng, &mut self.recorder, &mut self.scheduler, fe);
         }
-        self.model
-            .finish_frame(rng, &mut self.recorder, &mut self.scheduler);
+        self.model.finish_frame(rng, &mut self.recorder);
     }
 
     /// run simulate for frames with calculate each event
@@ -260,8 +256,7 @@ where
 {
     /// run simulate for one frame with calculate each event with get None event after all fired events
     pub fn run_step_optional<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        self.model
-            .start_frame(rng, &mut self.recorder, &mut self.scheduler);
+        self.model.start_frame(rng, &mut self.recorder);
         let fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
         let mut fired_iter = fired.iter();
         loop {
@@ -272,8 +267,7 @@ where
                 break;
             }
         }
-        self.model
-            .finish_frame(rng, &mut self.recorder, &mut self.scheduler);
+        self.model.finish_frame(rng, &mut self.recorder);
     }
 
     /// run simulate for frames with calculate each event with get None event after all fired events

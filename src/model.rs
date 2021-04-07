@@ -17,20 +17,10 @@ pub trait Model<Rec> {
     );
 
     /// action when start frame
-    fn start_frame<R: Rng + ?Sized>(
-        &mut self,
-        rng: &mut R,
-        recorder: &mut Rec,
-        scheduler: &mut EventScheduler<Self::ModelEvent>,
-    );
+    fn start_frame<R: Rng + ?Sized>(&mut self, rng: &mut R, recorder: &mut Rec);
 
     /// action when finish frame
-    fn finish_frame<R: Rng + ?Sized>(
-        &mut self,
-        rng: &mut R,
-        recorder: &mut Rec,
-        scheduler: &mut EventScheduler<Self::ModelEvent>,
-    );
+    fn finish_frame<R: Rng + ?Sized>(&mut self, rng: &mut R, recorder: &mut Rec);
 }
 
 /// can calculate fired events in bulk
