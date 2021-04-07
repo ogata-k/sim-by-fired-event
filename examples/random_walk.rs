@@ -163,11 +163,11 @@ impl Model<Recorder> for WalkerList {
         self.print_walk_state();
     }
 
-    fn start_frame<R: Rng + ?Sized>(&mut self, _rng: &mut R, _recorder: &mut Recorder) {
+    fn start_frame(&mut self, _recorder: &mut Recorder) {
         self.timer += 1;
     }
 
-    fn finish_frame<R: Rng + ?Sized>(&mut self, _rng: &mut R, _recorder: &mut Recorder) {
+    fn finish_frame(&mut self, _recorder: &mut Recorder) {
         self.print_walk_state();
     }
 }

@@ -17,10 +17,32 @@ pub trait Model<Rec> {
     );
 
     /// action when start frame
-    fn start_frame<R: Rng + ?Sized>(&mut self, rng: &mut R, recorder: &mut Rec);
+    fn start_frame(&mut self, recorder: &mut Rec);
+
+    #[allow(unused_variables)]
+    /// schedule event before first event in each frame
+    fn before_first_event<R: Rng + ?Sized>(
+        &mut self,
+        rng: &mut R,
+        recorder: &mut Rec,
+        scheduler: &mut EventScheduler<Self::ModelEvent>,
+    ) {
+        // usually not use
+    }
 
     /// action when finish frame
-    fn finish_frame<R: Rng + ?Sized>(&mut self, rng: &mut R, recorder: &mut Rec);
+    fn finish_frame(&mut self, recorder: &mut Rec);
+
+    #[allow(unused_variables)]
+    /// schedule event after last event in each frame
+    fn after_last_event<R: Rng + ?Sized>(
+        &mut self,
+        rng: &mut R,
+        recorder: &mut Rec,
+        scheduler: &mut EventScheduler<Self::ModelEvent>,
+    ) {
+        // usually not use
+    }
 }
 
 /// can calculate fired events in bulk
@@ -44,17 +66,5 @@ pub trait StepEachEvent<Rec, E: Event>: Model<Rec, ModelEvent = E> {
         recorder: &mut Rec,
         scheduler: &mut EventScheduler<Self::ModelEvent>,
         fired_event: &(Priority, Self::ModelEvent),
-    );
-}
-
-/// can calculate fired each event with get None event after all fired events
-pub trait LastNoneEvent<Rec, E: Event>: Model<Rec, ModelEvent = E> {
-    /// action for each one step for one event with get None event after all fired events
-    fn step_optional<R: Rng + ?Sized>(
-        &mut self,
-        rng: &mut R,
-        recorder: &mut Rec,
-        scheduler: &mut EventScheduler<Self::ModelEvent>,
-        fired_event: Option<&(Priority, Self::ModelEvent)>,
     );
 }
