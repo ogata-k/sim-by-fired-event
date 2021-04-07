@@ -1,8 +1,8 @@
 use rand::distributions::Distribution;
 use rand::distributions::Uniform;
 use rand::{thread_rng, Rng};
-use sim_by_fired_event::event::{Event, EventScheduler, EventTimer, Priority, Schedule};
-use sim_by_fired_event::model::Model;
+use sim_by_fired_event::event::{Event, EventScheduler, EventTimer, Schedule};
+use sim_by_fired_event::model::{BulkEvents, Model};
 use sim_by_fired_event::Simulator;
 use std::collections::BTreeMap;
 
@@ -163,14 +163,33 @@ impl Model<Recorder> for WalkerList {
         self.print_walk_state();
     }
 
-    fn step<R: Rng + ?Sized>(
+    fn start_frame<R: Rng + ?Sized>(
+        &mut self,
+        _rng: &mut R,
+        _recorder: &mut Recorder,
+        _scheduler: &mut EventScheduler<Self::ModelEvent>,
+    ) {
+        self.timer += 1;
+    }
+
+    fn finish_frame<R: Rng + ?Sized>(
+        &mut self,
+        _rng: &mut R,
+        _recorder: &mut Recorder,
+        _scheduler: &mut EventScheduler<Self::ModelEvent>,
+    ) {
+        self.print_walk_state();
+    }
+}
+
+impl BulkEvents<Recorder, Walk> for WalkerList {
+    fn step_in_bulk_event<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
         recorder: &mut Recorder,
         _scheduler: &mut EventScheduler<Self::ModelEvent>,
-        fired_events: &mut Vec<(Priority, Self::ModelEvent)>,
+        fired_events: Vec<(u8, Self::ModelEvent)>,
     ) {
-        self.timer += 1;
         print!("fired:");
         for (_, fired) in fired_events.iter() {
             let index = fired.index;
@@ -184,8 +203,6 @@ impl Model<Recorder> for WalkerList {
             walker.walk(direction);
         }
         println!();
-
-        self.print_walk_state();
     }
 }
 
@@ -215,7 +232,7 @@ fn main() {
     let mut rng = thread_rng();
     let model = WalkerList::new();
     let mut simulator = Simulator::create_from(&mut rng, model, Default::default());
-    simulator.run(&mut rng, FRAME_COUNT);
+    simulator.run_n_count_in_bulk(&mut rng, FRAME_COUNT);
 
     println!();
     for (index, logs) in simulator.get_recorder() {

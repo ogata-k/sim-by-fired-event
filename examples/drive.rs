@@ -1,6 +1,6 @@
 use rand::{thread_rng, Rng};
 use sim_by_fired_event::event::{Event, EventScheduler, EventTimer, Priority};
-use sim_by_fired_event::model::Model;
+use sim_by_fired_event::model::{BulkEvents, Model};
 use sim_by_fired_event::Simulator;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
@@ -60,12 +60,32 @@ impl Model<CarRecorder> for Car {
         );
     }
 
-    fn step<R: Rng + ?Sized>(
+    fn start_frame<R: Rng + ?Sized>(
+        &mut self,
+        _rng: &mut R,
+        _recorder: &mut CarRecorder,
+        _scheduler: &mut EventScheduler<Self::ModelEvent>,
+    ) {
+        // none
+    }
+
+    fn finish_frame<R: Rng + ?Sized>(
+        &mut self,
+        _rng: &mut R,
+        _recorder: &mut CarRecorder,
+        _scheduler: &mut EventScheduler<Self::ModelEvent>,
+    ) {
+        // none
+    }
+}
+
+impl BulkEvents<CarRecorder, CarEvent> for Car {
+    fn step_in_bulk_event<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
         recorder: &mut CarRecorder,
         scheduler: &mut EventScheduler<CarEvent>,
-        fired_events: &mut Vec<(Priority, CarEvent)>,
+        fired_events: Vec<(Priority, CarEvent)>,
     ) {
         if self.status == CarStatus::EngineStop {
             return;
@@ -160,7 +180,7 @@ fn main() {
     let mut rng = thread_rng();
     let model = Car::new();
     let mut simulator = Simulator::create_from(&mut rng, model, CarRecorder::default());
-    simulator.run_until(&mut rng, |model| model.status != CarStatus::EngineStop);
+    simulator.run_until_in_bulk(&mut rng, |model| model.status != CarStatus::EngineStop);
 
     println!();
     let recorder = simulator.get_recorder();

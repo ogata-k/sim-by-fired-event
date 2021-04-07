@@ -1,7 +1,7 @@
 //! Simulator is discrete time simulator with event which fire at scheduled timing.
 
 use crate::event::{Event, EventScheduler, Priority};
-use crate::model::Model;
+use crate::model::{BulkEvents, Model, StepEachEvent};
 use rand::Rng;
 use std::mem;
 
@@ -111,20 +111,30 @@ where
     pub fn swap_recorder(&mut self, new_recorder: Rec) -> Rec {
         mem::replace(&mut self.recorder, new_recorder)
     }
+}
 
-    // -----------
-    // methods for run simulation
-    // -----------
-
-    /// run simulate for one frame
-    pub fn run_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        let mut fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
+impl<M, E, Rec> Simulator<M, E, Rec>
+where
+    M: BulkEvents<Rec, E>,
+    E: Event,
+{
+    /// run simulate for one frame with bulk events
+    pub fn run_step_in_bulk<R: Rng + ?Sized>(&mut self, rng: &mut R) {
         self.model
-            .step(rng, &mut self.recorder, &mut self.scheduler, &mut fired);
+            .start_frame(rng, &mut self.recorder, &mut self.scheduler);
+        let fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
+        self.model
+            .step_in_bulk_event(rng, &mut self.recorder, &mut self.scheduler, fired);
+        self.model
+            .finish_frame(rng, &mut self.recorder, &mut self.scheduler);
     }
 
-    /// run simulate for frames
-    pub fn run<R: Rng + ?Sized, FC: FrameCounter>(&mut self, rng: &mut R, counter: FC) {
+    /// run simulate for frames with bulk events
+    pub fn run_n_count_in_bulk<R: Rng + ?Sized, FC: FrameCounter>(
+        &mut self,
+        rng: &mut R,
+        counter: FC,
+    ) {
         let mut index = FC::start_state();
         loop {
             let (can_continue, next) = index.next_state(&counter);
@@ -133,12 +143,12 @@ where
             }
             index = next;
 
-            self.run_step(rng);
+            self.run_step_in_bulk(rng);
         }
     }
 
-    /// run simulation until condition is true
-    pub fn run_until<R: Rng + ?Sized, F>(&mut self, rng: &mut R, can_continue: F)
+    /// run simulation until condition is true with bulk events
+    pub fn run_until_in_bulk<R: Rng + ?Sized, F>(&mut self, rng: &mut R, can_continue: F)
     where
         F: Fn(&M) -> bool,
     {
@@ -147,12 +157,12 @@ where
                 break;
             }
 
-            self.run_step(rng);
+            self.run_step_in_bulk(rng);
         }
     }
 
-    /// run simulation with update model's state
-    pub fn run_with_state<R: Rng + ?Sized, S, F, P>(
+    /// run simulation with update model's state with bulk events
+    pub fn run_with_state_in_bulk<R: Rng + ?Sized, S, F, P>(
         &mut self,
         rng: &mut R,
         update_state: F,
@@ -167,7 +177,78 @@ where
                 break;
             }
 
-            self.run_step(rng);
+            self.run_step_in_bulk(rng);
+        }
+    }
+}
+
+impl<M, E, Rec> Simulator<M, E, Rec>
+where
+    M: StepEachEvent<Rec, E>,
+    E: Event,
+{
+    /// run simulate for one frame with calculate each event
+    pub fn run_step_each_event<R: Rng + ?Sized>(&mut self, rng: &mut R) {
+        self.model
+            .start_frame(rng, &mut self.recorder, &mut self.scheduler);
+        let fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
+        for fe in fired.iter() {
+            self.model
+                .step_each_event(rng, &mut self.recorder, &mut self.scheduler, fe);
+        }
+        self.model
+            .finish_frame(rng, &mut self.recorder, &mut self.scheduler);
+    }
+
+    /// run simulate for frames with calculate each event
+    pub fn run_n_count_each_event<R: Rng + ?Sized, FC: FrameCounter>(
+        &mut self,
+        rng: &mut R,
+        counter: FC,
+    ) {
+        let mut index = FC::start_state();
+        loop {
+            let (can_continue, next) = index.next_state(&counter);
+            if !can_continue {
+                break;
+            }
+            index = next;
+
+            self.run_step_each_event(rng);
+        }
+    }
+
+    /// run simulation until condition is true with calculate each event
+    pub fn run_until_each_event<R: Rng + ?Sized, F>(&mut self, rng: &mut R, can_continue: F)
+    where
+        F: Fn(&M) -> bool,
+    {
+        loop {
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step_each_event(rng);
+        }
+    }
+
+    /// run simulation with update model's state with calculate each event
+    pub fn run_with_state_each_event<R: Rng + ?Sized, S, F, P>(
+        &mut self,
+        rng: &mut R,
+        update_state: F,
+        can_continue: P,
+    ) where
+        F: Fn(&mut M),
+        P: Fn(&M) -> bool,
+    {
+        loop {
+            update_state(&mut self.model);
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step_each_event(rng);
         }
     }
 }
