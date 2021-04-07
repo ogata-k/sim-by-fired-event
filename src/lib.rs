@@ -1,7 +1,7 @@
 //! Simulator is discrete time simulator with event which fire at scheduled timing.
 
 use crate::event::{Event, EventScheduler, Priority};
-use crate::model::{BulkEvents, Model, StepEachEvent};
+use crate::model::{BulkEvents, LastNoneEvent, Model, StepEachEvent};
 use rand::Rng;
 use std::mem;
 
@@ -249,6 +249,82 @@ where
             }
 
             self.run_step_each_event(rng);
+        }
+    }
+}
+
+impl<M, E, Rec> Simulator<M, E, Rec>
+where
+    M: LastNoneEvent<Rec, E>,
+    E: Event,
+{
+    /// run simulate for one frame with calculate each event with get None event after all fired events
+    pub fn run_step_optional<R: Rng + ?Sized>(&mut self, rng: &mut R) {
+        self.model
+            .start_frame(rng, &mut self.recorder, &mut self.scheduler);
+        let fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
+        let mut fired_iter = fired.iter();
+        loop {
+            let fe = fired_iter.next();
+            self.model
+                .step_optional(rng, &mut self.recorder, &mut self.scheduler, fe);
+            if fe.is_none() {
+                break;
+            }
+        }
+        self.model
+            .finish_frame(rng, &mut self.recorder, &mut self.scheduler);
+    }
+
+    /// run simulate for frames with calculate each event with get None event after all fired events
+    pub fn run_n_count_optional<R: Rng + ?Sized, FC: FrameCounter>(
+        &mut self,
+        rng: &mut R,
+        counter: FC,
+    ) {
+        let mut index = FC::start_state();
+        loop {
+            let (can_continue, next) = index.next_state(&counter);
+            if !can_continue {
+                break;
+            }
+            index = next;
+
+            self.run_step_optional(rng);
+        }
+    }
+
+    /// run simulation until condition is true with calculate each event with get None event after all fired events
+    pub fn run_until_optional<R: Rng + ?Sized, F>(&mut self, rng: &mut R, can_continue: F)
+    where
+        F: Fn(&M) -> bool,
+    {
+        loop {
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step_optional(rng);
+        }
+    }
+
+    /// run simulation with update model's state with calculate each event with get None event after all fired events
+    pub fn run_with_state_optional<R: Rng + ?Sized, S, F, P>(
+        &mut self,
+        rng: &mut R,
+        update_state: F,
+        can_continue: P,
+    ) where
+        F: Fn(&mut M),
+        P: Fn(&M) -> bool,
+    {
+        loop {
+            update_state(&mut self.model);
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step_optional(rng);
         }
     }
 }

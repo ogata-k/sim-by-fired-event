@@ -56,3 +56,15 @@ pub trait StepEachEvent<Rec, E: Event>: Model<Rec, ModelEvent = E> {
         fired_event: &(Priority, Self::ModelEvent),
     );
 }
+
+/// can calculate fired each event with get None event after all fired events
+pub trait LastNoneEvent<Rec, E: Event>: Model<Rec, ModelEvent = E> {
+    /// action for each one step for one event with get None event after all fired events
+    fn step_optional<R: Rng + ?Sized>(
+        &mut self,
+        rng: &mut R,
+        recorder: &mut Rec,
+        scheduler: &mut EventScheduler<Self::ModelEvent>,
+        fired_event: Option<&(Priority, Self::ModelEvent)>,
+    );
+}
