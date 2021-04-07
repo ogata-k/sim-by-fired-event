@@ -138,11 +138,7 @@ where
     }
 
     /// run simulate for frames with bulk events
-    pub fn run_n_count_in_bulk<R: Rng + ?Sized, FC: FrameCounter>(
-        &mut self,
-        rng: &mut R,
-        counter: FC,
-    ) {
+    pub fn run_n_in_bulk<R: Rng + ?Sized, FC: FrameCounter>(&mut self, rng: &mut R, counter: FC) {
         let mut index = FC::start_index();
         loop {
             index.next_index();
@@ -210,7 +206,7 @@ where
     }
 
     /// run simulate for frames with calculate each event
-    pub fn run_n_count_each_event<R: Rng + ?Sized, FC: FrameCounter>(
+    pub fn run_n_each_event<R: Rng + ?Sized, FC: FrameCounter>(
         &mut self,
         rng: &mut R,
         counter: FC,

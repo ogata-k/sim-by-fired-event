@@ -222,7 +222,7 @@ fn main() {
     let mut rng = thread_rng();
     let model = WalkerList::new();
     let mut simulator = Simulator::create_from(&mut rng, model, Default::default());
-    simulator.run_n_count_in_bulk(&mut rng, FRAME_COUNT);
+    simulator.run_n_in_bulk(&mut rng, FRAME_COUNT);
 
     println!();
     for (index, logs) in simulator.get_recorder() {
