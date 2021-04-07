@@ -11,22 +11,28 @@ pub mod model;
 /// TimeCounter for user
 pub trait FrameCounter: Copy {
     /// start state. this value used always.
-    fn start_state() -> Self;
+    fn start_index() -> Self;
 
-    /// get (can continue flag, next state)
-    fn next_state(&self, specified: &Self) -> (bool, Self);
+    /// get next index
+    fn next_index(&mut self);
+
+    /// check can continue
+    fn can_continue(&self, specified: &Self) -> bool;
 }
 
 macro_rules! impl_counter {
     ($t:ty, $i:ident) => {
         impl FrameCounter for $t {
-            fn start_state() -> $t {
+            fn start_index() -> $t {
                 $i::MIN
             }
 
-            fn next_state(&self, specified: &$t) -> (bool, $t) {
-                let next = self + 1;
-                (&next <= specified, next)
+            fn next_index(&mut self) {
+                *self += 1;
+            }
+
+            fn can_continue(&self, specified: &$t) -> bool {
+                self <= specified
             }
         }
     };
@@ -133,13 +139,12 @@ where
         rng: &mut R,
         counter: FC,
     ) {
-        let mut index = FC::start_state();
+        let mut index = FC::start_index();
         loop {
-            let (can_continue, next) = index.next_state(&counter);
-            if !can_continue {
+            index.next_index();
+            if !index.can_continue(&counter) {
                 break;
             }
-            index = next;
 
             self.run_step_in_bulk(rng);
         }
@@ -202,13 +207,12 @@ where
         rng: &mut R,
         counter: FC,
     ) {
-        let mut index = FC::start_state();
+        let mut index = FC::start_index();
         loop {
-            let (can_continue, next) = index.next_state(&counter);
-            if !can_continue {
+            index.next_index();
+            if !index.can_continue(&counter) {
                 break;
             }
-            index = next;
 
             self.run_step_each_event(rng);
         }
@@ -276,13 +280,12 @@ where
         rng: &mut R,
         counter: FC,
     ) {
-        let mut index = FC::start_state();
+        let mut index = FC::start_index();
         loop {
-            let (can_continue, next) = index.next_state(&counter);
-            if !can_continue {
+            index.next_index();
+            if !index.can_continue(&counter) {
                 break;
             }
-            index = next;
 
             self.run_step_optional(rng);
         }
