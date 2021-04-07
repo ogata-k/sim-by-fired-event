@@ -127,7 +127,7 @@ impl Schedule {
     }
 }
 
-/// 0 is the highest priority, u8::Max is the lowest priority.
+/// 0 is the highest priority, u8::MAX is the lowest priority.
 pub type Priority = u8;
 
 /// event scheduler
