@@ -117,142 +117,209 @@ where
     pub fn swap_recorder(&mut self, new_recorder: Rec) -> Rec {
         mem::replace(&mut self.recorder, new_recorder)
     }
+
+    //
+    // run simulation
+    //
+
+    /// run simulate for one frame with calculate each event
+    pub fn run_step<R: Rng + ?Sized, H>(&mut self, rng: &mut R, mut handler: H)
+    where
+        H: FnMut(&mut R, &mut M, &mut Rec, &mut EventScheduler<E>, Vec<(Priority, E)>),
+    {
+        self.model.start_frame(&mut self.recorder);
+        let fired_events: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
+        self.model
+            .before_first_event(rng, &mut self.recorder, &mut self.scheduler);
+        handler(
+            rng,
+            &mut self.model,
+            &mut self.recorder,
+            &mut self.scheduler,
+            fired_events,
+        );
+        self.model
+            .after_last_event(rng, &mut self.recorder, &mut self.scheduler);
+
+        self.model.finish_frame(&mut self.recorder);
+    }
+
+    /// run simulate for frames with calculate each event
+    pub fn run_n<R: Rng + ?Sized, FC: FrameCounter, H>(
+        &mut self,
+        rng: &mut R,
+        counter: FC,
+        mut handler: H,
+    ) where
+        H: FnMut(&mut R, &mut M, &mut Rec, &mut EventScheduler<E>, Vec<(Priority, E)>),
+    {
+        let mut index = FC::start_index();
+        loop {
+            index.next_index();
+            if !index.can_continue(&counter) {
+                break;
+            }
+
+            self.run_step(rng, |rng, model, recorder, scheduler, events| {
+                handler(rng, model, recorder, scheduler, events)
+            });
+        }
+    }
+
+    /// run simulation until condition is true with calculate each event
+    pub fn run_until<R: Rng + ?Sized, F, H>(&mut self, rng: &mut R, can_continue: F, mut handler: H)
+    where
+        F: Fn(&M) -> bool,
+        H: FnMut(&mut R, &mut M, &mut Rec, &mut EventScheduler<E>, Vec<(Priority, E)>),
+    {
+        loop {
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step(rng, |rng, model, recorder, scheduler, events| {
+                handler(rng, model, recorder, scheduler, events)
+            });
+        }
+    }
+
+    /// run simulation with update model's state with calculate each event
+    pub fn run_with_state<R: Rng + ?Sized, F, P, H>(
+        &mut self,
+        rng: &mut R,
+        update_state: F,
+        can_continue: P,
+        mut handler: H,
+    ) where
+        F: Fn(&mut M),
+        P: Fn(&M) -> bool,
+        H: FnMut(&mut R, &mut M, &mut Rec, &mut EventScheduler<E>, Vec<(Priority, E)>),
+    {
+        loop {
+            update_state(&mut self.model);
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step(rng, |rng, model, recorder, scheduler, events| {
+                handler(rng, model, recorder, scheduler, events)
+            });
+        }
+    }
 }
 
+// TODO If concat_idents macro is to be stable, then replace $suffix:ident and concat_idents!.
+macro_rules! impl_base_set {
+    ($handler:ident, [$run_step:ident,$run_n:ident,$run_until:ident,$run_with_state:ident]) => {
+        /// run simulate for one frame
+        pub fn $run_step<R: Rng + ?Sized>(&mut self, rng: &mut R) {
+            self.model.start_frame(&mut self.recorder);
+            let fired_events: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
+            self.model
+                .before_first_event(rng, &mut self.recorder, &mut self.scheduler);
+            self.$handler(rng, fired_events);
+            self.model
+                .after_last_event(rng, &mut self.recorder, &mut self.scheduler);
+
+            self.model.finish_frame(&mut self.recorder);
+        }
+
+        /// run simulate for frames
+        pub fn $run_n<R: Rng + ?Sized, FC: FrameCounter>(&mut self, rng: &mut R, counter: FC) {
+            let mut index = FC::start_index();
+            loop {
+                index.next_index();
+                if !index.can_continue(&counter) {
+                    break;
+                }
+                self.$run_step(rng);
+            }
+        }
+
+        /// run simulation until condition is true
+        pub fn $run_until<R: Rng + ?Sized, F>(&mut self, rng: &mut R, can_continue: F)
+        where
+            F: Fn(&M) -> bool,
+        {
+            loop {
+                if !can_continue(&self.model) {
+                    break;
+                }
+                self.$run_step(rng);
+            }
+        }
+
+        /// run simulation with update model's state
+        pub fn $run_with_state<R: Rng + ?Sized, S, F, P>(
+            &mut self,
+            rng: &mut R,
+            update_state: F,
+            can_continue: P,
+        ) where
+            F: Fn(&mut M),
+            P: Fn(&M) -> bool,
+        {
+            loop {
+                update_state(&mut self.model);
+                if !can_continue(&self.model) {
+                    break;
+                }
+                self.$run_step(rng);
+            }
+        }
+    };
+}
+
+/// simulate for fired event with calculate in bulk
 impl<M, E, Rec> Simulator<M, E, Rec>
 where
     M: BulkEvents<Rec, E>,
     E: Event,
 {
-    /// run simulate for one frame with bulk events
-    pub fn run_step_in_bulk<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        self.model.start_frame(&mut self.recorder);
-        let fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
-        self.model
-            .before_first_event(rng, &mut self.recorder, &mut self.scheduler);
-        self.model
-            .step_in_bulk_event(rng, &mut self.recorder, &mut self.scheduler, fired);
-        self.model
-            .after_last_event(rng, &mut self.recorder, &mut self.scheduler);
-        self.model.finish_frame(&mut self.recorder);
-    }
-
-    /// run simulate for frames with bulk events
-    pub fn run_n_in_bulk<R: Rng + ?Sized, FC: FrameCounter>(&mut self, rng: &mut R, counter: FC) {
-        let mut index = FC::start_index();
-        loop {
-            index.next_index();
-            if !index.can_continue(&counter) {
-                break;
-            }
-
-            self.run_step_in_bulk(rng);
-        }
-    }
-
-    /// run simulation until condition is true with bulk events
-    pub fn run_until_in_bulk<R: Rng + ?Sized, F>(&mut self, rng: &mut R, can_continue: F)
-    where
-        F: Fn(&M) -> bool,
-    {
-        loop {
-            if !can_continue(&self.model) {
-                break;
-            }
-
-            self.run_step_in_bulk(rng);
-        }
-    }
-
-    /// run simulation with update model's state with bulk events
-    pub fn run_with_state_in_bulk<R: Rng + ?Sized, S, F, P>(
+    fn handler_in_bulk_event<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
-        update_state: F,
-        can_continue: P,
-    ) where
-        F: Fn(&mut M),
-        P: Fn(&M) -> bool,
-    {
-        loop {
-            update_state(&mut self.model);
-            if !can_continue(&self.model) {
-                break;
-            }
-
-            self.run_step_in_bulk(rng);
-        }
+        fired_events: Vec<(Priority, E)>,
+    ) {
+        self.model
+            .step_in_bulk(rng, &mut self.recorder, &mut self.scheduler, fired_events);
     }
+
+    impl_base_set!(
+        handler_in_bulk_event,
+        [
+            run_step_in_bulk_event,
+            run_n_in_bulk_event,
+            run_until_in_bulk_event,
+            run_with_state_in_bulk_event
+        ]
+    );
 }
 
+/// simulate for fired event with calculate each event
 impl<M, E, Rec> Simulator<M, E, Rec>
 where
     M: StepEachEvent<Rec, E>,
     E: Event,
 {
-    /// run simulate for one frame with calculate each event
-    pub fn run_step_each_event<R: Rng + ?Sized>(&mut self, rng: &mut R) {
-        self.model.start_frame(&mut self.recorder);
-        let fired: Vec<(Priority, E)> = self.scheduler.next_time_and_fire(rng);
-        self.model
-            .before_first_event(rng, &mut self.recorder, &mut self.scheduler);
-        for fe in fired.iter() {
+    fn handler_each_event<R: Rng + ?Sized>(
+        &mut self,
+        rng: &mut R,
+        fired_events: Vec<(Priority, E)>,
+    ) {
+        for fe in fired_events.iter() {
             self.model
                 .step_each_event(rng, &mut self.recorder, &mut self.scheduler, fe);
         }
-        self.model
-            .after_last_event(rng, &mut self.recorder, &mut self.scheduler);
-        self.model.finish_frame(&mut self.recorder);
     }
 
-    /// run simulate for frames with calculate each event
-    pub fn run_n_each_event<R: Rng + ?Sized, FC: FrameCounter>(
-        &mut self,
-        rng: &mut R,
-        counter: FC,
-    ) {
-        let mut index = FC::start_index();
-        loop {
-            index.next_index();
-            if !index.can_continue(&counter) {
-                break;
-            }
-
-            self.run_step_each_event(rng);
-        }
-    }
-
-    /// run simulation until condition is true with calculate each event
-    pub fn run_until_each_event<R: Rng + ?Sized, F>(&mut self, rng: &mut R, can_continue: F)
-    where
-        F: Fn(&M) -> bool,
-    {
-        loop {
-            if !can_continue(&self.model) {
-                break;
-            }
-
-            self.run_step_each_event(rng);
-        }
-    }
-
-    /// run simulation with update model's state with calculate each event
-    pub fn run_with_state_each_event<R: Rng + ?Sized, S, F, P>(
-        &mut self,
-        rng: &mut R,
-        update_state: F,
-        can_continue: P,
-    ) where
-        F: Fn(&mut M),
-        P: Fn(&M) -> bool,
-    {
-        loop {
-            update_state(&mut self.model);
-            if !can_continue(&self.model) {
-                break;
-            }
-
-            self.run_step_each_event(rng);
-        }
-    }
+    impl_base_set!(
+        handler_each_event,
+        [
+            run_step_each_event,
+            run_n_each_event,
+            run_until_each_event,
+            run_with_state_each_event
+        ]
+    );
 }

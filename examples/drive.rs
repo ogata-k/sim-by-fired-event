@@ -70,7 +70,7 @@ impl Model<CarRecorder> for Car {
 }
 
 impl BulkEvents<CarRecorder, CarEvent> for Car {
-    fn step_in_bulk_event<R: Rng + ?Sized>(
+    fn step_in_bulk<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
         recorder: &mut CarRecorder,
@@ -170,7 +170,7 @@ fn main() {
     let mut rng = thread_rng();
     let model = Car::new();
     let mut simulator = Simulator::create_from(&mut rng, model, CarRecorder::default());
-    simulator.run_until_in_bulk(&mut rng, |model| model.status != CarStatus::EngineStop);
+    simulator.run_until_in_bulk_event(&mut rng, |model| model.status != CarStatus::EngineStop);
 
     println!();
     let recorder = simulator.get_recorder();

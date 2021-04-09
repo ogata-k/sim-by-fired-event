@@ -48,7 +48,7 @@ pub trait Model<Rec> {
 /// can calculate fired events in bulk
 pub trait BulkEvents<Rec, E: Event>: Model<Rec, ModelEvent = E> {
     /// action for each one step
-    fn step_in_bulk_event<R: Rng + ?Sized>(
+    fn step_in_bulk<R: Rng + ?Sized>(
         &mut self,
         rng: &mut R,
         recorder: &mut Rec,
