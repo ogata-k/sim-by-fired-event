@@ -2,7 +2,6 @@
 
 use rand::distributions::{Distribution, Uniform, WeightedError, WeightedIndex};
 use rand::Rng;
-use std::ops::Range;
 
 /// Timer for local
 pub type LocalEventTime = u32;
@@ -47,8 +46,11 @@ impl From<WeightedError> for ScheduleEventError {
 pub enum EventTimer {
     /// fire after timeout
     Time(LocalEventTime),
-    /// fire after random value by uniform select in range values
-    Uniform(Range<LocalEventTime>),
+    /// fire after random value by uniform select in range values.
+    ///
+    /// args is pair of low value, mas value and inclusive flag.
+    /// it inclusive is true then low <= max, if false then low < max.
+    Uniform(LocalEventTime, LocalEventTime, bool),
     /// fire after choice value with these weight as random.
     WeightedIndex(Vec<(LocalEventTime, u8)>),
 }
@@ -61,7 +63,11 @@ impl EventTimer {
     ) -> Result<LocalEventTime, ScheduleEventError> {
         match &self {
             EventTimer::Time(timeout) => Ok(*timeout),
-            EventTimer::Uniform(range) => Ok(Uniform::from(range.clone()).sample(rng)),
+            EventTimer::Uniform(low, max, inclusive) => Ok(if *inclusive {
+                Uniform::from(*low..=*max).sample(rng)
+            } else {
+                Uniform::from(*low..*max).sample(rng)
+            }),
             EventTimer::WeightedIndex(items) => {
                 let dist = WeightedIndex::new(items.iter().map(|item| item.1))?;
                 Ok(items
