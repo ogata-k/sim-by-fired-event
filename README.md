@@ -86,7 +86,7 @@ fn new() -> Self {
 ## create Event structure
 Second, create event structure.
 
-If do not use event, you can skip this step and so on. Please refer to the [counter](./examples/counter.rx) simulation for details.
+If do not use event, you can skip this step and so on. Please refer to the [counter](./examples/counter.rs) simulation for details.
 Following for the simulation when use event.
 
 I want to use the event which the account request to fetch requested items,
