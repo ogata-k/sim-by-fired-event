@@ -65,6 +65,7 @@ pub trait StepEachEvent<Rec, E: Event>: Model<Rec, ModelEvent = E> {
         rng: &mut R,
         recorder: &mut Rec,
         scheduler: &mut EventScheduler<Self::ModelEvent>,
-        fired_event: &(Priority, Self::ModelEvent),
+        priority: Priority,
+        fired_event: Self::ModelEvent,
     );
 }

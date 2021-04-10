@@ -307,9 +307,9 @@ where
         rng: &mut R,
         fired_events: Vec<(Priority, E)>,
     ) {
-        for fe in fired_events.iter() {
+        for (p, e) in fired_events.into_iter() {
             self.model
-                .step_each_event(rng, &mut self.recorder, &mut self.scheduler, fe);
+                .step_each_event(rng, &mut self.recorder, &mut self.scheduler, p, e);
         }
     }
 
