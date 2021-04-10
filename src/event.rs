@@ -133,7 +133,7 @@ impl Schedule {
     }
 }
 
-/// 0 is the highest priority, u8::MAX is the lowest priority.
+/// u8::MIN is the lowest priority, u8::MAX is the highest priority.
 pub type Priority = u8;
 
 /// event scheduler
@@ -233,8 +233,8 @@ impl<E: Event> EventScheduler<E> {
         let mut index: usize = 0;
         let timer: LocalEventTime = schedule.to_local_timer(rng)?;
 
-        for (count, _, sch_priority, _) in self.event_list.iter() {
-            if (&timer == count && &priority < sch_priority) || &timer < count {
+        for (count, _, pty, _) in self.event_list.iter() {
+            if (&timer == count && &priority > pty) || &timer < count {
                 break;
             }
             index += 1;
