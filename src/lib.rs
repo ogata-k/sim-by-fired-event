@@ -1,7 +1,7 @@
 //! Simulator is discrete time simulator with event which fire at scheduled timing.
 
 use crate::event::{Event, EventScheduler, Priority};
-use crate::model::{BulkEvents, Model, StepEachEvent};
+use crate::model::{BulkEvents, Model, NothingEventModel, StepEachEvent};
 use rand::Rng;
 use std::mem;
 
@@ -43,6 +43,121 @@ impl_counter!(u32, u32);
 impl_counter!(u64, u64);
 impl_counter!(u128, u128);
 impl_counter!(usize, usize);
+
+/// simulator for Nothing event
+#[derive(Debug, Clone)]
+pub struct NothingEventSimulator<M, Rec>
+where
+    M: NothingEventModel<Rec>,
+{
+    model: M,
+    recorder: Rec,
+}
+
+impl<M, Rec> NothingEventSimulator<M, Rec>
+where
+    M: NothingEventModel<Rec>,
+{
+    /// create as default
+    pub fn new() -> Self
+    where
+        M: Default,
+        Rec: Default,
+    {
+        let mut sim = Self {
+            model: Default::default(),
+            recorder: Default::default(),
+        };
+        sim.initialize();
+        sim
+    }
+
+    /// create simulator from model
+    pub fn create_from(model: M, recorder: Rec) -> Self {
+        let mut sim = Self { model, recorder };
+        sim.initialize();
+        sim
+    }
+
+    /// initialize simulator
+    fn initialize(&mut self) {
+        self.model.initialize(&mut self.recorder);
+    }
+
+    /// getter for model
+    pub fn get_model(&self) -> &M {
+        &self.model
+    }
+
+    /// getter for recorder
+    pub fn get_recorder(&self) -> &Rec {
+        &self.recorder
+    }
+
+    /// getter for recorder
+    pub fn get_recorder_as_mut(&mut self) -> &mut Rec {
+        &mut self.recorder
+    }
+
+    /// swap new and old recorder with get old recorder.
+    pub fn swap_recorder(&mut self, new_recorder: Rec) -> Rec {
+        mem::replace(&mut self.recorder, new_recorder)
+    }
+
+    //
+    // run simulation
+    //
+
+    /// run simulate for one frame
+    pub fn run_step(&mut self) {
+        self.model.start_frame(&mut self.recorder);
+        self.model.step(&mut self.recorder);
+        self.model.finish_frame(&mut self.recorder);
+    }
+
+    /// run simulate for frames
+    pub fn run_n<FC: FrameCounter>(&mut self, counter: FC) {
+        let mut index = FC::start_index();
+        loop {
+            index.next_index();
+            if !index.can_continue(&counter) {
+                break;
+            }
+
+            self.run_step();
+        }
+    }
+
+    /// run simulation until condition is true
+    pub fn run_until<F>(&mut self, can_continue: F)
+    where
+        F: Fn(&M) -> bool,
+    {
+        loop {
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step();
+        }
+    }
+
+    /// run simulation with update model's state
+    pub fn run_with_state<F, P>(&mut self, update_state: F, can_continue: P)
+    where
+        F: Fn(&mut M),
+        P: Fn(&M) -> bool,
+    {
+        loop {
+            update_state(&mut self.model);
+            if !can_continue(&self.model) {
+                break;
+            }
+
+            self.run_step();
+        }
+    }
+}
 
 /// simulator
 #[derive(Debug, Clone)]
@@ -122,7 +237,7 @@ where
     // run simulation
     //
 
-    /// run simulate for one frame with calculate each event
+    /// run simulate for one frame
     pub fn run_step<R: Rng + ?Sized, H>(&mut self, rng: &mut R, mut handler: H)
     where
         H: FnMut(&mut R, &mut M, &mut Rec, &mut EventScheduler<E>, Vec<(Priority, E)>),
@@ -144,7 +259,7 @@ where
         self.model.finish_frame(&mut self.recorder);
     }
 
-    /// run simulate for frames with calculate each event
+    /// run simulate for frames
     pub fn run_n<R: Rng + ?Sized, FC: FrameCounter, H>(
         &mut self,
         rng: &mut R,
@@ -166,7 +281,7 @@ where
         }
     }
 
-    /// run simulation until condition is true with calculate each event
+    /// run simulation until condition is true
     pub fn run_until<R: Rng + ?Sized, F, H>(&mut self, rng: &mut R, can_continue: F, mut handler: H)
     where
         F: Fn(&M) -> bool,
@@ -183,7 +298,7 @@ where
         }
     }
 
-    /// run simulation with update model's state with calculate each event
+    /// run simulation with update model's state
     pub fn run_with_state<R: Rng + ?Sized, F, P, H>(
         &mut self,
         rng: &mut R,

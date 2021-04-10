@@ -3,6 +3,21 @@
 use crate::event::{Event, EventScheduler, Priority};
 use rand::Rng;
 
+/// can store model as Simulator's model for Nothing event
+pub trait NothingEventModel<Rec> {
+    /// initialize model
+    fn initialize(&mut self, recorder: &mut Rec);
+
+    /// action when start frame
+    fn start_frame(&mut self, recorder: &mut Rec);
+
+    /// action step
+    fn step(&mut self, recorder: &mut Rec);
+
+    /// action when finish frame
+    fn finish_frame(&mut self, recorder: &mut Rec);
+}
+
 /// can store model as Simulator's model
 pub trait Model<Rec> {
     /// usable event's type
@@ -30,9 +45,6 @@ pub trait Model<Rec> {
         // usually not use
     }
 
-    /// action when finish frame
-    fn finish_frame(&mut self, recorder: &mut Rec);
-
     #[allow(unused_variables)]
     /// schedule event after last event in each frame
     fn after_last_event<R: Rng + ?Sized>(
@@ -43,6 +55,9 @@ pub trait Model<Rec> {
     ) {
         // usually not use
     }
+
+    /// action when finish frame
+    fn finish_frame(&mut self, recorder: &mut Rec);
 }
 
 /// can calculate fired events in bulk
