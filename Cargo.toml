@@ -2,7 +2,13 @@
 name = "sim-by-fired-event"
 version = "0.1.0"
 authors = ["ogata-k <ogtkzk712@gmail.com>"]
+license = "MIT"
 edition = "2018"
+description="This library is the library of discrete time simulation with event scheduling and firing events at the time."
+repository = "https://github.com/ogata-k/sim-by-fired-event"
+readme = "README.md"
+keywords = ["event", "discrete", "simulation", "science", "easy"]
+categories = ["Simulation", "Science"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
