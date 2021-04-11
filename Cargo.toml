@@ -1,6 +1,6 @@
 [package]
 name = "sim-by-fired-event"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["ogata-k <ogtkzk712@gmail.com>"]
 license = "MIT"
 edition = "2018"
